@@ -24,8 +24,8 @@
         - A summary section (<div id="summary"></div>) to show counts, totals, or reports. /
     - Functional Requirements
         - On Add, validate inputs, insert record into array, re-render list. 
-        - On Filter, apply chosen filter and re-render.
-        - On Delete, confirm before removing record. 
+        - On Filter, apply chosen filter and re-render. /
+        - On Delete, confirm before removing record. /
         - On Sort, toggle ascending/descending. 
         - Implement live search with partial keywords. 
         - Highlight special cases in red (class after 6 PM). 
@@ -53,17 +53,18 @@
 
     <button onclick="filterClass()">Filter</button>
     <button onclick="deleteClass()">Delete</button>
-    <button onclick="sortClass()">Sort</button>
+    <button onclick="sortClass(true, true)">Sort</button>
+    <button id="toggle_sort" onclick="toggleSort()" hidden>Toggle: Ascending</button>
     <button>Reset</button>
 
-    <div id="list">kkl,</div>
+    <div id="list"></div>
     <div id="summary"></div>
 
     <script>
         // Object Literal
         const student = {
-            name: "Kyle Darren Laguerta",
-            id: "2024-01-01840",
+            name: "loki",
+            id: "202",
             enrolled_classes: [new ClassObj("math 101", "monday", "7:30am-7:45am"), new ClassObj("math 102", "tuesday", "8:30am-9:30am"), new ClassObj("math 103", "monday", "6:30am-7:00am")],
             addClass: function(classObj) {
                 this.enrolled_classes.push(classObj);
@@ -177,20 +178,47 @@
             return ((letters == "am" && hour == 12) ? 0 : hour*60) + minutes + ((letters == "pm" && hour == 12) ? 0 : 720);
         }
 
-        function sortClass() {
-            let sort_category = prompt("In what category do you want to sort");
+        let sort_category;
+        let isAscending = true;
+
+        function toggleSort() {
+            isAscending = (isAscending) ? false : true;
+            sortClass(isAscending, false);
+
+            document.getElementById("toggle_sort").innerText = isAscending ? "Toggle: Ascending" : "Toggle: Descending";
+        }
+
+        function sortClass(isAscending, withPrompt) {
+            document.getElementById("toggle_sort").hidden = false;
+
+            if (withPrompt) {
+                sort_category = prompt("In what category do you want to sort");
+            }
+
             if (sort_category == "day") {
                 const dayOrder = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
-                student.enrolled_classes.sort((a, b) => {
-                    return dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day);
-                });
+                if (isAscending) {
+                    student.enrolled_classes.sort((a, b) => {
+                        return dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day);
+                    });
+                } else {
+                    student.enrolled_classes.sort((a, b) => {
+                        return dayOrder.indexOf(b.day) - dayOrder.indexOf(a.day);
+                    });
+                }
 
                 renderList();
             } else if (sort_category == "time") {
-                student.enrolled_classes.sort((a, b) => {
-                    return convertToMinutes(a.time.split("-")[0]) - convertToMinutes(b.time.split("-")[0]);
-                });
+                if (isAscending) {
+                    student.enrolled_classes.sort((a, b) => {
+                        return convertToMinutes(a.time.split("-")[0]) - convertToMinutes(b.time.split("-")[0]);
+                    });
+                } else {
+                    student.enrolled_classes.sort((a, b) => {
+                        return convertToMinutes(b.time.split("-")[0])- convertToMinutes(a.time.split("-")[0]);
+                    });
+                }
 
                 renderList();
             }
