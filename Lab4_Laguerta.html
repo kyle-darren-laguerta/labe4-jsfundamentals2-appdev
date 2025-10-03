@@ -24,7 +24,7 @@
         - A summary section (<div id="summary"></div>) to show counts, totals, or reports. /
     - Functional Requirements
         - On Add, validate inputs, insert record into array, re-render list. 
-        - On Filter, apply chosen filter and re-render. 
+        - On Filter, apply chosen filter and re-render.
         - On Delete, confirm before removing record. 
         - On Sort, toggle ascending/descending. 
         - Implement live search with partial keywords. 
@@ -52,7 +52,7 @@
     </form>
 
     <button>Filter</button>
-    <button>Delete</button>
+    <button onclick="deleteClass()">Delete</button>
     <button>Sort</button>
     <button>Reset</button>
 
@@ -60,8 +60,6 @@
     <div id="summary"></div>
 
     <script>
-        let record = [];
-
         // Object Literal
         const student = {
             name: "Kyle Darren Laguerta",
@@ -95,6 +93,7 @@
             let time = document.getElementById("time").value;
 
             student.addClass(new ClassObj(code, day, time));
+            // Render list every submit
             renderList();
         }
 
@@ -104,7 +103,9 @@
             // Clear previous content before rendering new content
             listdiv.innerHTML = "";
 
+            // Get the class list string
             let class_str = student.listClasses();
+            // Split by "\n" to separate each class information
             let class_str_arr = class_str.split("\n");
 
 
@@ -113,6 +114,26 @@
                 p.textContent = class_str_arr[i];
                 listdiv.appendChild(p);
             }
+        }
+
+        function deleteClass() {
+            let to_delete = prompt("Enter the code of the class you want to delete");
+            let delete_success = false;
+            
+            let i=0;
+            while (i < student.enrolled_classes.length) {
+                if (to_delete === student.enrolled_classes[i].code) {
+                    // Remove the current element from array
+                    student.enrolled_classes.splice(i, 1);
+                    delete_success = true;
+                }
+
+                i++;
+            }
+
+            if (!delete_success) alert("Class doesn't exist");
+
+            renderList();
         }
     </script>
 </body>
