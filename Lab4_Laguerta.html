@@ -4,9 +4,9 @@
     - Allow the user (via form input) to add at least 5 records
     - Operations
         - Add a record /
-        - Delete a record with confirmation
+        - Delete a record with confirmation /
         - Update a record by searching for a unique field (class code)
-        - Filter records by a meaningful rule (classes on Friday). 
+        - Filter records by a meaningful rule (classes on Friday). /
         - Sort records by one numeric and one string field
         - Write a custom search function that accepts partial keywords (typing "Ma" matches "Math 101"). 
         - Show results both in the console and in the DOM (HTML list or table).
@@ -51,7 +51,7 @@
         <button type="submit">Add</button>
     </form>
 
-    <button>Filter</button>
+    <button onclick="filterClass()">Filter</button>
     <button onclick="deleteClass()">Delete</button>
     <button>Sort</button>
     <button>Reset</button>
@@ -64,7 +64,7 @@
         const student = {
             name: "Kyle Darren Laguerta",
             id: "2024-01-01840",
-            enrolled_classes: [],
+            enrolled_classes: [new ClassObj("math 101", "monday", "7:30am"), new ClassObj("math 102", "tuesday", "8:30am"), new ClassObj("math 103", "monday", "8:30am")],
             addClass: function(classObj) {
                 this.enrolled_classes.push(classObj);
             },
@@ -97,7 +97,7 @@
             renderList();
         }
 
-        function renderList() {
+        function renderList(filter_category = null, filter_value = null) {
             const listdiv = document.getElementById("list");
 
             // Clear previous content before rendering new content
@@ -111,29 +111,62 @@
 
             for (let i=0; i < class_str_arr.length; i++) {
                 let p = document.createElement("p");
-                p.textContent = class_str_arr[i];
-                listdiv.appendChild(p);
+                if (filter_category === "day") {
+                    if (student.enrolled_classes[i].day == filter_value) {
+                        p.textContent = class_str_arr[i];
+                        listdiv.appendChild(p);
+                    }
+                } else if (filter_category === "time") {
+                    if (student.enrolled_classes[i].time == filter_value) {
+                        p.textContent = class_str_arr[i];
+                        listdiv.appendChild(p);
+                    }
+                } else {
+                    p.textContent = class_str_arr[i];
+                    listdiv.appendChild(p);
+                }
             }
         }
 
+        renderList(); // for debugging
+
         function deleteClass() {
             let to_delete = prompt("Enter the code of the class you want to delete");
-            let delete_success = false;
+            let to_delete_found = false;
             
             let i=0;
             while (i < student.enrolled_classes.length) {
                 if (to_delete === student.enrolled_classes[i].code) {
-                    // Remove the current element from array
-                    student.enrolled_classes.splice(i, 1);
-                    delete_success = true;
+                    // A delete happen
+                    to_delete_found = true;
+                    // Stop the i from incrementing
+                    break;
                 }
-
                 i++;
             }
 
-            if (!delete_success) alert("Class doesn't exist");
+            if (!to_delete_found) {
+                alert("Class doesn't exist");
+            } else {
+                if (confirm("Are you sure you want to delete " + to_delete + "?")) {
+                    // Remove the current element from array
+                    student.enrolled_classes.splice(i, 1);
+                    renderList();
+                }
+            }
+        }
 
-            renderList();
+        function filterClass() {
+            let category = prompt("Choose the category the filter will base from(day, time or all)").toLowerCase();
+
+            if (!(category == "day" || category == "time" || category == "all")) {
+                prompt("Invalid category");
+            } else if (category == "all") {
+                renderList();
+            } else {
+                let filter_value = prompt("Enter filter value");
+                renderList(category, filter_value);
+            }
         }
     </script>
 </body>
