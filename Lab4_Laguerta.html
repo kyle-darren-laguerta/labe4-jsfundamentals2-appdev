@@ -1,0 +1,119 @@
+<!--
+    TO-DO List
+    - Initialize an empty array to store records /
+    - Allow the user (via form input) to add at least 5 records
+    - Operations
+        - Add a record /
+        - Delete a record with confirmation
+        - Update a record by searching for a unique field (class code)
+        - Filter records by a meaningful rule (classes on Friday). 
+        - Sort records by one numeric and one string field
+        - Write a custom search function that accepts partial keywords (typing "Ma" matches "Math 101"). 
+        - Show results both in the console and in the DOM (HTML list or table).
+    - Objects to define
+        - student object { name, id, enrolledClasses: [] } /
+        - class object { code, day, time } /
+        - Methods: 
+            - addClass(classObj) rejects if class conflicts in time. 
+            - listClasses() returns all enrolled classes in readable format. /
+    - UI Elements
+        - Heading (<h2>) showing your chosen IS /
+        - A form with at least 3 inputs for adding new records. /
+        - Buttons: Add, Filter, Delete, Sort, Reset.  /
+        - A container (<div id="list"></div>) to display records. / 
+        - A summary section (<div id="summary"></div>) to show counts, totals, or reports. /
+    - Functional Requirements
+        - On Add, validate inputs, insert record into array, re-render list. 
+        - On Filter, apply chosen filter and re-render. 
+        - On Delete, confirm before removing record. 
+        - On Sort, toggle ascending/descending. 
+        - Implement live search with partial keywords. 
+        - Highlight special cases in red (class after 6 PM). 
+        - Provide a toggle view (table view vs. card view).
+-->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+
+    <h2>Schedule IS</h2>
+    
+    <form onsubmit="handleSubmit(event)">
+        <input type="text" name="code" id="code" required>
+        <input type="text" name="day" id="day" required>
+        <input type="text" name="time" id="time" required>
+        <button type="submit">Add</button>
+    </form>
+
+    <button>Filter</button>
+    <button>Delete</button>
+    <button>Sort</button>
+    <button>Reset</button>
+
+    <div id="list">kkl,</div>
+    <div id="summary"></div>
+
+    <script>
+        let record = [];
+
+        // Object Literal
+        const student = {
+            name: "Kyle Darren Laguerta",
+            id: "2024-01-01840",
+            enrolled_classes: [],
+            addClass: function(classObj) {
+                this.enrolled_classes.push(classObj);
+            },
+            listClasses: function() {
+                let class_str = "";
+                for (let i=0; i < this.enrolled_classes.length; i++) {
+                    class_str += `Class code: ${this.enrolled_classes[i].code}; Day: ${this.enrolled_classes[i].day}; Time: ${this.enrolled_classes[i].time}\n`;
+                }
+                return class_str;
+            }
+        };
+
+        // Object contructor function for objects with arbitrary property values
+        function ClassObj(code, day, time) {
+            // Initialize object properties by paramater values
+            this.code = code;
+            this.day = day;
+            this.time = time;
+        }
+
+        function handleSubmit(event) {
+            event.preventDefault();
+
+            let code = document.getElementById("code").value;
+            let day = document.getElementById("day").value;
+            let time = document.getElementById("time").value;
+
+            student.addClass(new ClassObj(code, day, time));
+            renderList();
+        }
+
+        function renderList() {
+            const listdiv = document.getElementById("list");
+
+            // Clear previous content before rendering new content
+            listdiv.innerHTML = "";
+
+            let class_str = student.listClasses();
+            let class_str_arr = class_str.split("\n");
+
+
+            for (let i=0; i < class_str_arr.length; i++) {
+                let p = document.createElement("p");
+                p.textContent = class_str_arr[i];
+                listdiv.appendChild(p);
+            }
+        }
+    </script>
+</body>
+</html>
