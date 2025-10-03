@@ -7,7 +7,7 @@
         - Delete a record with confirmation /
         - Update a record by searching for a unique field (class code)
         - Filter records by a meaningful rule (classes on Friday). /
-        - Sort records by one numeric and one string field
+        - Sort records by one numeric and one string field /
         - Write a custom search function that accepts partial keywords (typing "Ma" matches "Math 101"). 
         - Show results both in the console and in the DOM (HTML list or table).
     - Objects to define
@@ -64,7 +64,7 @@
         const student = {
             name: "Kyle Darren Laguerta",
             id: "2024-01-01840",
-            enrolled_classes: [new ClassObj("math 101", "monday", "7:30am"), new ClassObj("math 102", "tuesday", "8:30am"), new ClassObj("math 103", "monday", "8:30am")],
+            enrolled_classes: [new ClassObj("math 101", "monday", "7:30am-7:45am"), new ClassObj("math 102", "tuesday", "8:30am-9:30am"), new ClassObj("math 103", "monday", "6:30am-7:00am")],
             addClass: function(classObj) {
                 this.enrolled_classes.push(classObj);
             },
@@ -189,7 +189,7 @@
                 renderList();
             } else if (sort_category == "time") {
                 student.enrolled_classes.sort((a, b) => {
-                    return convertToMinutes(a.time) - convertToMinutes(b.time);
+                    return convertToMinutes(a.time.split("-")[0]) - convertToMinutes(b.time.split("-")[0]);
                 });
 
                 renderList();
