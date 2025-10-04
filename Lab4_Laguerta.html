@@ -1,7 +1,7 @@
 <!--
     TO-DO List
     - Initialize an empty array to store records /
-    - Allow the user (via form input) to add at least 5 records
+    - Allow the user (via form input) to add at least 5 records /
     - Operations
         - Add a record /
         - Delete a record with confirmation /
@@ -55,27 +55,33 @@
     <button id="delete_btn" onclick="deleteClass()" hidden>Delete</button>
     <button id="sort_btn" onclick="sortClass(true, true)" hidden>Sort</button>
     <button id="toggle_sort" onclick="toggleSort()" hidden>Toggle: Ascending</button>
-    <button id="reset_btn" onclick="resetFilters()" hidden>Reset</button>
+    <button id="reset_btn" onclick="resetRecord()" hidden>Reset</button>
 
-    <!-- Live search box -->
     <input type="text" id="search" placeholder="Search by class code" onkeyup="liveSearch()" hidden>
     <button id="update_btn" onclick="updateRecord()" hidden>Update</button>
 
     <div id="list"></div>
-    <div id="summary"></div>
     <button id="toggle_view" onclick="toggleView()">Show Cards</button>
+    <div id="summary"></div>
 
     <script>
+        let view = "table"; // default view is table
+        let class_to_be_updated;
+        let sort_category;
+        let isAscending = true;
+
         // Object Literal
         const student = {
-            name: "loki",
-            id: "202",
+            name: "Kyle Darren D. Laguerta",
+            id: "2024-01-01840",
             enrolled_classes: [new ClassObj("math 101", "monday", "7:30am-7:45am"), new ClassObj("math 102", "tuesday", "8:30am-9:30am"), new ClassObj("math 103", "monday", "8:30am-9:30am"), new ClassObj("math 104", "wednesday", "8:30am-9:30am"), new ClassObj("math 105", "friday", "8:30am-9:30am")],
             addClass: function(classObj) {
                 this.enrolled_classes.push(classObj);
             },
             listClasses: function() {
                 let class_str = "";
+
+                // Return a readable string of all enrolled classes
                 for (let i=0; i < this.enrolled_classes.length; i++) {
                     class_str += `Class code: ${this.enrolled_classes[i].code}; Day: ${this.enrolled_classes[i].day}; Time: ${this.enrolled_classes[i].time}\n`;
                 }
@@ -91,28 +97,10 @@
             this.time = time;
         }
 
-        let view = "table"; // default view is table
-        function toggleView() {
-            if (view == "table") {
-                view = "card";
-                document.getElementById("toggle_view").innerText = "Show Table";
-            } else {
-                view = "table";
-                document.getElementById("toggle_view").innerText = "Show Cards";
-            }
-            renderList();
-        }
-
-        function updateActionVisibility() {
-            const show = student.enrolled_classes.length >= 5;
-            document.getElementById('filter_btn').hidden = !show;
-            document.getElementById('delete_btn').hidden = !show;
-            document.getElementById('sort_btn').hidden = !show;
-            document.getElementById('search').hidden = !show;
-            document.getElementById('reset_btn').hidden = !show;
-        }
+        //----------------------------------------Validation Functions----------------------------------------//
 
         function validateCode(code) {
+            // Check if the code already exist
             for (let i=0; i < student.enrolled_classes.length; i++) {
                 if (student.enrolled_classes[i].code === code) {
                     return false;
@@ -125,16 +113,20 @@
         function validateDay(day) {
             const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
+            // Check if the input day is a valid day
             return days.includes(day) ? true : false;
         }
 
         function validateTime(time) {
+            // Split the time into start and end time
             let time_split = time.split("-");
             let time_valid = true;
 
+            // Check if there are exactly 2 time intervals
             if (time_split.length !== 2) return false;
             
             for (let i=0; i < 2; i++) {
+                // Extract the letters (am and pm), hour and minutes
                 let letters = time_split[i].slice(-2);
                 let hour = parseInt(time_split[i].slice(0, -5));
                 let minutes = parseInt(time_split[i].slice(0, -2).split(":")[1]);
@@ -148,7 +140,7 @@
         function validateSchedule(day, time) {
             let result = true;
             for (let i=0; i < student.enrolled_classes.length; i++) {
-                // Check if the same day first
+                // Check if the same day has conflicting time
                 if (student.enrolled_classes[i].day === day) {
                     // Get the time intervals and convert it to minutes integer
                     let existing_time_start = convertToMinutes(student.enrolled_classes[i].time.split("-")[0]);
@@ -166,9 +158,13 @@
             return result;
         }
 
+        //----------------------------------------Main Functions----------------------------------------//
+
         function handleSubmit(event) {
+            // Prevent from refreshing the page
             event.preventDefault();
 
+            // Get the input values and validate them
             let code = document.getElementById("code").value.toLowerCase();
             if (validateCode(code)) {
                 let day = document.getElementById("day").value.toLowerCase();
@@ -176,15 +172,15 @@
                     let time = document.getElementById("time").value.toLowerCase();
                     if (validateTime(time)) {
                         if (validateSchedule(day, time)) {
+                            // If all inputs are valid add the class
                             student.addClass(new ClassObj(code, day, time));
 
-                            // Check if at least 5 records exist
-                            if (student.enrolled_classes.length < 5) {
-                                alert("You must input at least 5 records before using other features.");
-                                updateActionVisibility();
-                            } else {
-                                updateActionVisibility();
-                            }
+                            // Remind the user to input at least 5 records
+                            if (student.enrolled_classes.length < 5) alert("Reminder: You must input at least 5 records before using other features.");
+
+                            // Update the visibility of buttons
+                            updateActionVisibility();
+
                             // Render list every successful submit
                             renderList();
                         } else {
@@ -201,174 +197,130 @@
             }
         }
 
-        // The parameters is for filter purposes
-        function renderList(filter_category = null, filter_value = null, live_input = null) {
-            console.log(student.listClasses());
+        function deleteClass() {
+            let to_delete = prompt("Enter the code of the class you want to delete");
+            let to_delete_found = false;
+            
+            let i=0;
+            while (i < student.enrolled_classes.length) {
+                if (to_delete === student.enrolled_classes[i].code) {
+                    // A delete happen
+                    to_delete_found = true;
+                    // Stop the i from incrementing
+                    break;
+                }
+                i++;
+            }
 
-            const listdiv = document.getElementById("list");
-            // Clear previous content before rendering new content
-            listdiv.innerHTML = "";
-
-            if (view == "table") {
-                // Create the table element
-                const table = document.createElement("table");
-                table.border = "1"; // add border for visibility
-
-                listdiv.appendChild(table);
-
-                // Create table header
-                const theadrow = document.createElement("tr");
-                
-                const headers = Object.keys(student.enrolled_classes[0]);
-                headers.forEach(headerText => {
-                    const theadcol = document.createElement("th");
-                    theadcol.textContent = headerText;
-                    theadrow.appendChild(theadcol);
-                });
-
-                table.appendChild(theadrow);
-                
-                student.enrolled_classes.forEach(cls => {
-                    let showRow = false;
-                    if (filter_category === "day" && cls.day == filter_value) showRow = true;
-                    else if (filter_category === "time" && cls.time == filter_value) showRow = true;
-                    else if (live_input && cls.code.includes(live_input)) showRow = true;
-                    else if (!live_input && !filter_category && !filter_value) showRow = true;
-                    if (showRow) {
-                        const trow = document.createElement("tr");
-                        Object.values(cls).forEach(vals => {
-                            const items = document.createElement("td");
-                            items.textContent = vals;
-                            items.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || convertToMinutes(cls.time.split("-")[1]) >= 1080) ? "red" : "black";
-                            trow.appendChild(items);
-                        });
-                        table.appendChild(trow);
-                    }
-                });
+            if (!to_delete_found) {
+                alert("Class doesn't exist");
             } else {
-                student.enrolled_classes.forEach(cls => {
-                let showCard = false;
-
-                if (filter_category === "day" && cls.day == filter_value) {
-                    showCard = true;
-                } else if (filter_category === "time" && cls.time == filter_value) {
-                    showCard = true;
-                } else if (live_input !== null && cls.code.includes(live_input)) {
-                    showCard = true;
-                } else if (filter_category == null && filter_value == null && live_input == null) {
-                    showCard = true;
+                if (confirm("Are you sure you want to delete " + to_delete + "?")) {
+                    // Remove the current element from array
+                    student.enrolled_classes.splice(i, 1);
+                    updateActionVisibility();
+                    renderList();
                 }
-
-                if (showCard) {
-                    // Create card container
-                    const card = document.createElement("div");
-                    card.style.border = "1px solid #aaa";
-                    card.style.borderRadius = "8px";
-                    card.style.padding = "10px";
-                    card.style.margin = "10px";
-                    card.style.display = "inline-block";
-                    card.style.width = "200px";
-                    card.style.verticalAlign = "top";
-                    card.style.boxShadow = "2px 2px 5px rgba(0,0,0,0.1)";
-
-                    // Add card content
-                    const code = document.createElement("h3");
-                    code.textContent = cls.code;
-
-                    const day = document.createElement("p");
-                    day.textContent = "Day: " + cls.day;
-
-                    const time = document.createElement("p");
-                    time.textContent = "Time: " + cls.time;
-                    time.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || 
-                                        convertToMinutes(cls.time.split("-")[1]) >= 1080) 
-                                        ? "red" : "black";
-
-                    // Append items to card
-                    card.appendChild(code);
-                    card.appendChild(day);
-                    card.appendChild(time);
-
-                    // Append card to list
-                    listdiv.appendChild(card);
-                }
-            });
             }
         }
 
-        // The parameters is for filter purposes
-        // function renderList(filter_category = null, filter_value = null, live_input = null) {
-        //     const listdiv = document.getElementById("list");
+        function filterClass() {
+            let category = prompt("Choose the category the filter will base from(day, time or no filter)").toLowerCase();
 
-        //     // Clear previous content before rendering new content
-        //     listdiv.innerHTML = "";
+            if (category != "day" && category != "time" && category != "no filter") {
+                alert("Invalid category");
+            } else if (category == "no filter") {
+                // No filter, just render the whole list
+                renderList();
+            } else {
+                let filter_value = prompt("Enter filter value");
+                // Put the category and value to the renderList function, renderList will handle the filtering
+                renderList(category, filter_value);
+            }
+        }
 
-        //     student.enrolled_classes.forEach(cls => {
-        //         let showCard = false;
+        function resetRecord() {
+            if (confirm("Are you sure you want to reset all records?")) {
+                // Set the enrolled_classes to empty array
+                student.enrolled_classes = [];
+                renderList();
+                // Call updateActionVisibility to hide buttons
+                updateActionVisibility();
+            }
+        }
 
-        //         if (filter_category === "day" && cls.day == filter_value) {
-        //             showCard = true;
-        //         } else if (filter_category === "time" && cls.time == filter_value) {
-        //             showCard = true;
-        //         } else if (live_input !== null && cls.code.includes(live_input)) {
-        //             showCard = true;
-        //         } else if (filter_category == null && filter_value == null && live_input == null) {
-        //             showCard = true;
-        //         }
+        function sortClass(isAscending, withPrompt) {
+            // Unhide the toggle button for ascending/descending
+            document.getElementById("toggle_sort").hidden = false;
 
-        //         if (showCard) {
-        //             // Create card container
-        //             const card = document.createElement("div");
-        //             card.style.border = "1px solid #aaa";
-        //             card.style.borderRadius = "8px";
-        //             card.style.padding = "10px";
-        //             card.style.margin = "10px";
-        //             card.style.display = "inline-block";
-        //             card.style.width = "200px";
-        //             card.style.verticalAlign = "top";
-        //             card.style.boxShadow = "2px 2px 5px rgba(0,0,0,0.1)";
+            // This function is used by toggleSort that doesn't need a prompt
+            if (withPrompt) {
+                sort_category = prompt("In what category do you want to sort (day or time)");
+            }
 
-        //             // Add card content
-        //             const code = document.createElement("h3");
-        //             code.textContent = cls.code;
+            if (sort_category == "day") {
+                // Day order basis
+                const dayOrder = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
-        //             const day = document.createElement("p");
-        //             day.textContent = "Day: " + cls.day;
+                if (isAscending) {
+                    student.enrolled_classes.sort((a, b) => {
+                        return dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day);
+                    });
+                } else {
+                    student.enrolled_classes.sort((a, b) => {
+                        return dayOrder.indexOf(b.day) - dayOrder.indexOf(a.day);
+                    });
+                }
 
-        //             const time = document.createElement("p");
-        //             time.textContent = "Time: " + cls.time;
-        //             time.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || 
-        //                                 convertToMinutes(cls.time.split("-")[1]) >= 1080) 
-        //                                 ? "red" : "black";
+                renderList();
+            } else if (sort_category == "time") {
+                // Convert the time to minutes (integers) and sort based on start time
+                if (isAscending) {
+                    student.enrolled_classes.sort((a, b) => {
+                        return convertToMinutes(a.time.split("-")[0]) - convertToMinutes(b.time.split("-")[0]);
+                    });
+                } else {
+                    student.enrolled_classes.sort((a, b) => {
+                        return convertToMinutes(b.time.split("-")[0])- convertToMinutes(a.time.split("-")[0]);
+                    });
+                }
 
-        //             // Append items to card
-        //             card.appendChild(code);
-        //             card.appendChild(day);
-        //             card.appendChild(time);
+                renderList();
+            }
+        }
 
-        //             // Append card to list
-        //             listdiv.appendChild(card);
-        //         }
-        //     });
-        // }
+        function toggleSort() {
+            isAscending = (isAscending) ? false : true;
+            sortClass(isAscending, false);
 
+            document.getElementById("toggle_sort").innerText = isAscending ? "Toggle: Ascending" : "Toggle: Descending";
+        }
 
-        renderList(); // for debugging
+        function toggleView() {
+            if (view == "table") {
+                view = "card";
+                document.getElementById("toggle_view").innerText = "Show Table";
+            } else {
+                view = "table";
+                document.getElementById("toggle_view").innerText = "Show Cards";
+            }
+            renderList();
+        }
 
-        let class_to_be_updated;
-
-        // live search by partial class code
         function liveSearch() {
+            // live search by partial class code
             const query = document.getElementById("search").value.toLowerCase();
             const listdiv = document.getElementById("list");
 
             // Clear before re-rendering
             listdiv.innerHTML = "";
 
+            // Pass the query to renderList function, the renderList will handle the filtering
             renderList(null, null, query);
 
             for (let i=0; i < student.enrolled_classes.length; i++) {
                 if(student.enrolled_classes[i].code === query) {
+                    // Unhide the update button if there is a match
                     document.getElementById("update_btn").hidden = false;
                     class_to_be_updated = student.enrolled_classes[i];
                     break;
@@ -376,7 +328,6 @@
                     document.getElementById("update_btn").hidden = true;
                 }
             }
-
         }
 
         function updateRecord() {
@@ -388,9 +339,9 @@
 
             if (update_category == "code") {
                 new_value = prompt("Enter new code");
+                // Check if the code already exist
                 if (validateCode(new_value)) {                    
-                    class_to_be_updated.code = new_value;    
-                    alert("hello");
+                    class_to_be_updated.code = new_value;
                     renderList();
                     search_input.value = "";
                 } else {
@@ -427,6 +378,7 @@
                     alert("Invalid time");
                 }
             } else if (update_category == "day and time") {
+                // Update both at once for instances where updating one category will conflict with existing schedule
                 let new_value_day = prompt("Enter new day");
                 // Check if the day is valid
                 if (validateDay(new_value_day)) {
@@ -453,100 +405,171 @@
             }
         }
 
-        function deleteClass() {
-            let to_delete = prompt("Enter the code of the class you want to delete");
-            let to_delete_found = false;
+        // ----------------------------------------Rendering Functions----------------------------------------//
+        
+        // The parameters is for filter purposes
+        function renderList(filter_category = null, filter_value = null, live_input = null) {
+            // Show the enrolled classes in the console
+            console.log(student.listClasses());
             
-            let i=0;
-            while (i < student.enrolled_classes.length) {
-                if (to_delete === student.enrolled_classes[i].code) {
-                    // A delete happen
-                    to_delete_found = true;
-                    // Stop the i from incrementing
-                    break;
-                }
-                i++;
-            }
+            const listdiv = document.getElementById("list");
 
-            if (!to_delete_found) {
-                alert("Class doesn't exist");
-            } else {
-                if (confirm("Are you sure you want to delete " + to_delete + "?")) {
-                    // Remove the current element from array
-                    student.enrolled_classes.splice(i, 1);
-                    updateActionVisibility();
-                    renderList();
+            // Clear previous content before rendering new content
+            listdiv.innerHTML = "";
+
+            // Applies for table view only
+            // Table header must be created only once
+            let table;
+            if (view == "table") {
+                // Create the table element
+                table = document.createElement("table");
+                table.border = "1"; // add border for visibility
+
+                listdiv.appendChild(table);
+
+                // Create table header
+                const theadrow = document.createElement("tr");
+                
+                // Use try-catch to handle the case where there is no class
+                try {
+                    // Create headers based on object keys
+                    const headers = Object.keys(student.enrolled_classes[0]);
+                    headers.forEach(headerText => {
+                        const theadcol = document.createElement("th");
+                        theadcol.textContent = headerText;
+                        theadrow.appendChild(theadcol);
+                    });
+                } catch (error) {
+                    console.log("No classes to display");
                 }
+
+                table.appendChild(theadrow);
             }
+            
+            student.enrolled_classes.forEach(cls => {
+                let showInfo = false;
+                // Determine if the current class should be shown based on filter or live search
+                if (filter_category === "day" && cls.day == filter_value) showInfo = true;
+                else if (filter_category === "time" && cls.time == filter_value) showInfo = true;
+                else if (live_input && cls.code.includes(live_input)) showInfo = true;
+                else if (!live_input && !filter_category && !filter_value) showInfo = true;
+                if (showInfo && view == "table") {
+                    // If view is table create a new row for the current class
+                    const trow = document.createElement("tr");
+                    Object.values(cls).forEach(vals => {
+                        const items = document.createElement("td");
+                        items.textContent = vals;
+                        // Highlight in red if class start time or class end time is after 6 PM (1080 minutes)
+                        items.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || convertToMinutes(cls.time.split("-")[1]) >= 1080) ? "red" : "black";
+                        trow.appendChild(items);
+                    });
+                    table.appendChild(trow);
+                } else if (showInfo && view == "card") {
+                    // Create card container
+                    const card = document.createElement("div");
+                    card.style.border = "1px solid black";
+                    card.style.padding = "10px";
+                    card.style.margin = "10px";
+                    card.style.display = "inline-block";
+
+                    // Add card content
+                    const code = document.createElement("h3");
+                    code.textContent = cls.code;
+
+                    const day = document.createElement("p");
+                    day.textContent = "Day: " + cls.day;
+
+                    const time = document.createElement("p");
+                    time.textContent = "Time: " + cls.time;
+                    time.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || 
+                                        convertToMinutes(cls.time.split("-")[1]) >= 1080) 
+                                        ? "red" : "black";
+
+                    // Append items to card
+                    card.appendChild(code);
+                    card.appendChild(day);
+                    card.appendChild(time);
+
+                    // Append card to list
+                    listdiv.appendChild(card);
+                }
+            });
+
+            // Display summary after rendering the list
+            displaySummary();
         }
 
-        function filterClass() {
-            let category = prompt("Choose the category the filter will base from(day, time or no filter)").toLowerCase();
+        function displaySummary() {
+            let mondayCount = 0;
+            let tuesdayCount = 0;
+            let wednesdayCount = 0;
+            let thursdayCount = 0;
+            let fridayCount = 0;
+            let saturdayCount = 0;
+            let sundayCount = 0;
+            let morningCount = 0;
+            let afternoonCount = 0;
+            let hybridCount = 0;
 
-            if (!(category == "day" || category == "time" || category == "no filter")) {
-                prompt("Invalid category");
-            } else if (category == "no filter") {
-                renderList();
-            } else {
-                let filter_value = prompt("Enter filter value");
-                renderList(category, filter_value);
-            }
+            student.enrolled_classes.forEach(cls => {
+                // Incement the day count variable based on the day of the class
+                if (cls.day === "monday") mondayCount++;
+                if (cls.day === "tuesday") tuesdayCount++;
+                if (cls.day === "wednesday") wednesdayCount++;
+                if (cls.day === "thursday") thursdayCount++;
+                if (cls.day === "friday") fridayCount++;
+                if (cls.day === "saturday") saturdayCount++;
+                if (cls.day === "sunday") sundayCount++;
+
+                let start = cls.time.split("-")[0];
+                let end = cls.time.split("-")[1];
+
+                // Determine if the class is morning, afternoon or hybrid by checking the am/pm in the time string
+                let isMorning = start.slice(-2) === "am" && end.slice(-2) === "am";
+                let isAfternoon = start.slice(-2) === "pm" && end.slice(-2) === "pm";
+                let isHybrid = start.slice(-2) === "am" && end.slice(-2) === "pm";
+                if (isMorning) morningCount++;
+                else if (isAfternoon) afternoonCount++;
+                else if (isHybrid) hybridCount++;
+            });
+
+            const summaryDiv = document.getElementById("summary");
+            summaryDiv.innerHTML =
+                `<strong>Summary:</strong><br>` +
+                `Classes on Monday: ${mondayCount}<br>` +
+                `Classes on Tuesday: ${tuesdayCount}<br>` +
+                `Classes on Wednesday: ${wednesdayCount}<br>` +
+                `Classes on Thursday: ${thursdayCount}<br>` +
+                `Classes on Friday: ${fridayCount}<br>` +
+                `Classes on Saturday: ${saturdayCount}<br>` +
+                `Classes on Sunday: ${sundayCount}<br>` +
+                `Morning classes: ${morningCount}<br>` +
+                `Afternoon classes: ${afternoonCount}<br>` +
+                `Hybrid (morning to afternoon): ${hybridCount}`;
         }
+
+        function updateActionVisibility() {
+            // Hide if the enrolled_classes is less than 5
+            // Show if the enrolled_classes is greater than or equal to 5
+            const show = student.enrolled_classes.length >= 5;
+            document.getElementById('filter_btn').hidden = !show;
+            document.getElementById('delete_btn').hidden = !show;
+            document.getElementById('sort_btn').hidden = !show;
+            document.getElementById('search').hidden = !show;
+            document.getElementById('reset_btn').hidden = !show;
+        }
+
+        //----------------------------------------Helper Functions----------------------------------------//
 
         function convertToMinutes(clock_format_string) {
+            // Extract the letters (am and pm), hour and minutes
             let letters = clock_format_string.replace(/[^apm]/g, "");
+            // Extract hour and minutes and convert to integer
             let hour = parseInt(clock_format_string.slice(0, -5));
             let minutes = parseInt(clock_format_string.slice(0, -2).split(":")[1]);
             // Special condition: if 12am hours must be 0 and if 12pm should not add 720minutes (12 hrs)
             return ((letters == "am" && hour == 12) ? 0 : hour*60) + minutes + ((letters == "pm" && hour == 12) || (letters == "am") ? 0 : 720);
         }
-
-        let sort_category;
-        let isAscending = true;
-
-        function toggleSort() {
-            isAscending = (isAscending) ? false : true;
-            sortClass(isAscending, false);
-
-            document.getElementById("toggle_sort").innerText = isAscending ? "Toggle: Ascending" : "Toggle: Descending";
-        }
-
-        function sortClass(isAscending, withPrompt) {
-            document.getElementById("toggle_sort").hidden = false;
-
-            if (withPrompt) {
-                sort_category = prompt("In what category do you want to sort (day or time)");
-            }
-
-            if (sort_category == "day") {
-                const dayOrder = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-
-                if (isAscending) {
-                    student.enrolled_classes.sort((a, b) => {
-                        return dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day);
-                    });
-                } else {
-                    student.enrolled_classes.sort((a, b) => {
-                        return dayOrder.indexOf(b.day) - dayOrder.indexOf(a.day);
-                    });
-                }
-
-                renderList();
-            } else if (sort_category == "time") {
-                if (isAscending) {
-                    student.enrolled_classes.sort((a, b) => {
-                        return convertToMinutes(a.time.split("-")[0]) - convertToMinutes(b.time.split("-")[0]);
-                    });
-                } else {
-                    student.enrolled_classes.sort((a, b) => {
-                        return convertToMinutes(b.time.split("-")[0])- convertToMinutes(a.time.split("-")[0]);
-                    });
-                }
-
-                renderList();
-            }
-        }
-
 
     </script>
 </body>
