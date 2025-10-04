@@ -90,6 +90,16 @@
             this.time = time;
         }
 
+        function validateCode(code) {
+            for (let i=0; i < student.enrolled_classes.length; i++) {
+                if (student.enrolled_classes[i].code === code) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         function validateDay(day) {
             const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
@@ -114,6 +124,7 @@
         }
 
         function validateSchedule(day, time) {
+            let result = true;
             for (let i=0; i < student.enrolled_classes.length; i++) {
                 // Check if the same day first
                 if (student.enrolled_classes[i].day === day) {
@@ -125,77 +136,52 @@
 
                     // new_time_start must be less than existing_time_start or must be greater than or equal to existing_time_end
                     // new_time_end must be less than or equal to existing_time_start or must be greater than existing_time_end
-                    return (new_time_start < existing_time_start || new_time_start >= existing_time_end) && (new_time_end <= existing_time_start || new_time_end > existing_time_end);
+                    result &&= (new_time_start < existing_time_start || new_time_start >= existing_time_end) && (new_time_end <= existing_time_start || new_time_end > existing_time_end);
                 }
             }
 
             // Return true if day still not exist
-            return true;
+            return result;
         }
 
         function handleSubmit(event) {
             event.preventDefault();
 
             let code = document.getElementById("code").value.toLowerCase();
-            let day = document.getElementById("day").value.toLowerCase();
-            if (validateDay(day)) {
-                let time = document.getElementById("time").value.toLowerCase();
-                if (validateTime(time)) {
-                    if (validateSchedule(day, time)) {
-                        student.addClass(new ClassObj(code, day, time));
+            if (validateCode(code)) {
+                let day = document.getElementById("day").value.toLowerCase();
+                if (validateDay(day)) {
+                    let time = document.getElementById("time").value.toLowerCase();
+                    if (validateTime(time)) {
+                        if (validateSchedule(day, time)) {
+                            student.addClass(new ClassObj(code, day, time));
 
-                        // Render list every successful submit
-                        renderList();
+                            // Render list every successful submit
+                            renderList();
+                        } else {
+                            alert("There is a conflict in the schedule");
+                        }
                     } else {
-                        alert("There is a conflict in the schedule");
+                        alert("Invalid time");
                     }
                 } else {
-                    alert("Invalid time");
+                    alert("Invalid day");
                 }
             } else {
-                alert("Invalid day");
+                alert("Class code already exist");
             }
         }
 
-        // function renderList(filter_category = null, filter_value = null) {
-        //     const listdiv = document.getElementById("list");
-
-        //     // Clear previous content before rendering new content
-        //     listdiv.innerHTML = "";
-
-        //     // Get the class list string
-        //     let class_str = student.listClasses();
-        //     // Split by "\n" to separate each class information
-        //     let class_str_arr = class_str.split("\n");
-
-        //     for (let i=0; i < class_str_arr.length; i++) {
-        //         if (!class_str_arr[i]) continue; // skip empty string
-        //         let p = document.createElement("p");
-        //         if (filter_category === "day") {
-        //             if (student.enrolled_classes[i].day == filter_value) {
-        //                 p.textContent = class_str_arr[i];
-        //                 listdiv.appendChild(p);
-        //             }
-        //         } else if (filter_category === "time") {
-        //             if (student.enrolled_classes[i].time == filter_value) {
-        //                 p.textContent = class_str_arr[i];
-        //                 listdiv.appendChild(p);
-        //             }
-        //         } else {
-        //             p.textContent = class_str_arr[i];
-        //             listdiv.appendChild(p);
-        //         }
-        //     }
-        // }
-
         // The parameters is for filter purposes
         function renderList(filter_category = null, filter_value = null, live_input = null) {
+            console.log(student.listClasses());
+            
             const listdiv = document.getElementById("list");
 
             // Clear previous content before rendering new content
             listdiv.innerHTML = "";
 
-                    // Create the table element
+            // Create the table element
             const table = document.createElement("table");
             table.border = "1"; // add border for visibility
 
@@ -220,6 +206,7 @@
                         Object.values(cls).forEach(vals => {
                             const items = document.createElement("td");
                             items.textContent = vals;
+                            items.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || convertToMinutes(cls.time.split("-")[1]) >= 1080) ? "red" : "black";
                             trow.appendChild(items);
                         });
                     }
@@ -228,6 +215,7 @@
                         Object.values(cls).forEach(vals => {
                             const items = document.createElement("td");
                             items.textContent = vals;
+                            items.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || convertToMinutes(cls.time.split("-")[1]) >= 1080) ? "red" : "black";
                             trow.appendChild(items);
                         });
                     }
@@ -235,36 +223,19 @@
                     Object.values(cls).forEach(vals => {
                         const items = document.createElement("td");
                         items.textContent = vals;
+                        items.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || convertToMinutes(cls.time.split("-")[1]) >= 1080) ? "red" : "black";
                         trow.appendChild(items);
                     });
                 } else if (live_input == null && filter_category == null && filter_value == null) {
                     Object.values(cls).forEach(vals => {
                         const items = document.createElement("td");
                         items.textContent = vals;
+                        items.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || convertToMinutes(cls.time.split("-")[1]) >= 1080) ? "red" : "black";
                         trow.appendChild(items);
                     });
                 }
                 table.appendChild(trow);
             });
-
-            // for (let i=0; i < class_str_arr.length; i++) {
-            //     if (!class_str_arr[i]) continue; // skip empty string
-            //     let p = document.createElement("p");
-            //     if (filter_category === "day") {
-            //         if (student.enrolled_classes[i].day == filter_value) {
-            //             p.textContent = class_str_arr[i];
-            //             listdiv.appendChild(p);
-            //         }
-            //     } else if (filter_category === "time") {
-            //         if (student.enrolled_classes[i].time == filter_value) {
-            //             p.textContent = class_str_arr[i];
-            //             listdiv.appendChild(p);
-            //         }
-            //     } else {
-            //         p.textContent = class_str_arr[i];
-            //         listdiv.appendChild(p);
-            //     }
-            // }
         }
 
         renderList(); // for debugging
@@ -281,23 +252,16 @@
 
             renderList(null, null, query);
 
-            // // I didn't call renderList() because renderList() has its own filter feature
-            // // Filter enrolled_classes by partial code match
-            // for (let i = 0; i < student.enrolled_classes.length; i++) {
-            //     if (student.enrolled_classes[i].code.includes(query)) {
-            //         let p = document.createElement("p");
-            //         p.textContent = `Class code: ${student.enrolled_classes[i].code}; Day: ${student.enrolled_classes[i].day}; Time: ${student.enrolled_classes[i].time}`;
-            //         listdiv.appendChild(p);
+            for (let i=0; i < student.enrolled_classes.length; i++) {
+                if(student.enrolled_classes[i].code === query) {
+                    document.getElementById("update_btn").hidden = false;
+                    class_to_be_updated = student.enrolled_classes[i];
+                    break;
+                } else {
+                    document.getElementById("update_btn").hidden = true;
+                }
+            }
 
-            //         // Show update button if the current input is equal to an existing class code
-            //         if (student.enrolled_classes[i].code.toLowerCase() === query) {
-            //             document.getElementById("update_btn").hidden = false;
-            //             class_to_be_updated = student.enrolled_classes[i];
-            //         } else {
-            //             document.getElementById("update_btn").hidden = true;
-            //         }
-            //     }
-            // }
         }
 
         function updateRecord() {
@@ -309,9 +273,14 @@
 
             if (update_category == "code") {
                 new_value = prompt("Enter new code");
-                class_to_be_updated.code = new_value;    
-                renderList();
-                search_input.value = "";
+                if (validateCode(new_value)) {                    
+                    class_to_be_updated.code = new_value;    
+                    alert("hello");
+                    renderList();
+                    search_input.value = "";
+                } else {
+                    alert("Code already exist");
+                }
             } else if (update_category == "day") {
                 new_value = prompt("Enter new day");
                 // Check if the day is valid
@@ -413,7 +382,7 @@
             let hour = parseInt(clock_format_string.slice(0, -5));
             let minutes = parseInt(clock_format_string.slice(0, -2).split(":")[1]);
             // Special condition: if 12am hours must be 0 and if 12pm should not add 720minutes (12 hrs)
-            return ((letters == "am" && hour == 12) ? 0 : hour*60) + minutes + ((letters == "pm" && hour == 12) ? 0 : 720);
+            return ((letters == "am" && hour == 12) ? 0 : hour*60) + minutes + ((letters == "pm" && hour == 12) || (letters == "am") ? 0 : 720);
         }
 
         let sort_category;
