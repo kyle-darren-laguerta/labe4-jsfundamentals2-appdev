@@ -5,10 +5,10 @@
     - Operations
         - Add a record /
         - Delete a record with confirmation /
-        - Update a record by searching for a unique field (class code)
+        - Update a record by searching for a unique field (class code) /
         - Filter records by a meaningful rule (classes on Friday). /
         - Sort records by one numeric and one string field /
-        - Write a custom search function that accepts partial keywords (typing "Ma" matches "Math 101"). 
+        - Write a custom search function that accepts partial keywords (typing "Ma" matches "Math 101"). /
         - Show results both in the console and in the DOM (HTML list or table).
     - Objects to define
         - student object { name, id, enrolledClasses: [] } /
@@ -26,8 +26,8 @@
         - On Add, validate inputs, insert record into array, re-render list. 
         - On Filter, apply chosen filter and re-render. /
         - On Delete, confirm before removing record. /
-        - On Sort, toggle ascending/descending. 
-        - Implement live search with partial keywords. 
+        - On Sort, toggle ascending/descending. /
+        - Implement live search with partial keywords. /
         - Highlight special cases in red (class after 6 PM). 
         - Provide a toggle view (table view vs. card view).
 -->
@@ -56,6 +56,10 @@
     <button onclick="sortClass(true, true)">Sort</button>
     <button id="toggle_sort" onclick="toggleSort()" hidden>Toggle: Ascending</button>
     <button>Reset</button>
+
+    <!-- Live search box -->
+    <input type="text" id="search" placeholder="Search by class code" onkeyup="liveSearch()">
+    <button id="update_btn" onclick="updateRecord()" hidden>Update</button>
 
     <div id="list"></div>
     <div id="summary"></div>
@@ -86,12 +90,16 @@
             this.time = time;
         }
 
+        // function validateDay(day) {
+
+        // }
+
         function handleSubmit(event) {
             event.preventDefault();
 
-            let code = document.getElementById("code").value;
-            let day = document.getElementById("day").value;
-            let time = document.getElementById("time").value;
+            let code = document.getElementById("code").value.toLowerCase();
+            let day = document.getElementById("day").value.toLowerCase();
+            let time = document.getElementById("time").value.toLowerCase();
 
             student.addClass(new ClassObj(code, day, time));
             // Render list every submit
@@ -109,8 +117,8 @@
             // Split by "\n" to separate each class information
             let class_str_arr = class_str.split("\n");
 
-
             for (let i=0; i < class_str_arr.length; i++) {
+                if (!class_str_arr[i]) continue; // skip empty string
                 let p = document.createElement("p");
                 if (filter_category === "day") {
                     if (student.enrolled_classes[i].day == filter_value) {
@@ -130,6 +138,62 @@
         }
 
         renderList(); // for debugging
+
+        let class_to_be_updated;
+
+        // live search by partial class code
+        function liveSearch() {
+            const query = document.getElementById("search").value.toLowerCase();
+            const listdiv = document.getElementById("list");
+
+            // Clear before re-rendering
+            listdiv.innerHTML = "";
+
+            // I didn't call renderList() because renderList() has its own filter feature
+            // Filter enrolled_classes by partial code match
+            for (let i = 0; i < student.enrolled_classes.length; i++) {
+                if (student.enrolled_classes[i].code.toLowerCase().includes(query)) {
+                    let p = document.createElement("p");
+                    p.textContent = `Class code: ${student.enrolled_classes[i].code}; Day: ${student.enrolled_classes[i].day}; Time: ${student.enrolled_classes[i].time}`;
+                    listdiv.appendChild(p);
+
+                    // Show update button if the current input is equal to an existing class code
+                    if (student.enrolled_classes[i].code.toLowerCase() === query) {
+                        document.getElementById("update_btn").hidden = false;
+                        class_to_be_updated = student.enrolled_classes[i];
+                    } else {
+                        document.getElementById("update_btn").hidden = true;
+                    }
+                }
+            }
+        }
+
+        function updateRecord() {
+            let update_category = prompt("What do you want to update (code, day, time)");
+            let new_value;
+
+            // For emptying input after successful modification
+            let search_input = document.getElementById("search");
+
+            if (update_category == "code") {
+                new_value = prompt("Enter new code");
+                class_to_be_updated.code = new_value;    
+                renderList();
+                search_input.value = "";
+            } else if (update_category == "day") {
+                new_value = prompt("Enter new day");
+                class_to_be_updated.day = new_value;
+                renderList();
+                search_input.value = "";
+            } else if (update_category == "time") {
+                new_value = prompt("Enter new time");
+                class_to_be_updated.time = new_value;
+                renderList();
+                search_input.value = "";
+            } else {
+                alert("Invalid category");
+            }
+        }
 
         function deleteClass() {
             let to_delete = prompt("Enter the code of the class you want to delete");
@@ -223,6 +287,8 @@
                 renderList();
             }
         }
+
+
     </script>
 </body>
 </html>
