@@ -23,13 +23,13 @@
         - A container (<div id="list"></div>) to display records. / 
         - A summary section (<div id="summary"></div>) to show counts, totals, or reports. /
     - Functional Requirements
-        - On Add, validate inputs, insert record into array, re-render list. 
+        - On Add, validate inputs, insert record into array, re-render list. /
         - On Filter, apply chosen filter and re-render. /
         - On Delete, confirm before removing record. /
         - On Sort, toggle ascending/descending. /
         - Implement live search with partial keywords. /
-        - Highlight special cases in red (class after 6 PM). 
-        - Provide a toggle view (table view vs. card view).
+        - Highlight special cases in red (class after 6 PM). /
+        - Provide a toggle view (table view vs. card view). /
 -->
 
 
@@ -51,25 +51,26 @@
         <button type="submit">Add</button>
     </form>
 
-    <button onclick="filterClass()">Filter</button>
-    <button onclick="deleteClass()">Delete</button>
-    <button onclick="sortClass(true, true)">Sort</button>
+    <button id="filter_btn" onclick="filterClass()" hidden>Filter</button>
+    <button id="delete_btn" onclick="deleteClass()" hidden>Delete</button>
+    <button id="sort_btn" onclick="sortClass(true, true)" hidden>Sort</button>
     <button id="toggle_sort" onclick="toggleSort()" hidden>Toggle: Ascending</button>
-    <button>Reset</button>
+    <button id="reset_btn" onclick="resetFilters()" hidden>Reset</button>
 
     <!-- Live search box -->
-    <input type="text" id="search" placeholder="Search by class code" onkeyup="liveSearch()">
+    <input type="text" id="search" placeholder="Search by class code" onkeyup="liveSearch()" hidden>
     <button id="update_btn" onclick="updateRecord()" hidden>Update</button>
 
     <div id="list"></div>
     <div id="summary"></div>
+    <button id="toggle_view" onclick="toggleView()">Show Cards</button>
 
     <script>
         // Object Literal
         const student = {
             name: "loki",
             id: "202",
-            enrolled_classes: [new ClassObj("math 101", "monday", "7:30am-7:45am"), new ClassObj("math 102", "tuesday", "8:30am-9:30am"), new ClassObj("math 103", "monday", "8:30am-9:30am")],
+            enrolled_classes: [new ClassObj("math 101", "monday", "7:30am-7:45am"), new ClassObj("math 102", "tuesday", "8:30am-9:30am"), new ClassObj("math 103", "monday", "8:30am-9:30am"), new ClassObj("math 104", "wednesday", "8:30am-9:30am"), new ClassObj("math 105", "friday", "8:30am-9:30am")],
             addClass: function(classObj) {
                 this.enrolled_classes.push(classObj);
             },
@@ -88,6 +89,27 @@
             this.code = code;
             this.day = day;
             this.time = time;
+        }
+
+        let view = "table"; // default view is table
+        function toggleView() {
+            if (view == "table") {
+                view = "card";
+                document.getElementById("toggle_view").innerText = "Show Table";
+            } else {
+                view = "table";
+                document.getElementById("toggle_view").innerText = "Show Cards";
+            }
+            renderList();
+        }
+
+        function updateActionVisibility() {
+            const show = student.enrolled_classes.length >= 5;
+            document.getElementById('filter_btn').hidden = !show;
+            document.getElementById('delete_btn').hidden = !show;
+            document.getElementById('sort_btn').hidden = !show;
+            document.getElementById('search').hidden = !show;
+            document.getElementById('reset_btn').hidden = !show;
         }
 
         function validateCode(code) {
@@ -156,6 +178,13 @@
                         if (validateSchedule(day, time)) {
                             student.addClass(new ClassObj(code, day, time));
 
+                            // Check if at least 5 records exist
+                            if (student.enrolled_classes.length < 5) {
+                                alert("You must input at least 5 records before using other features.");
+                                updateActionVisibility();
+                            } else {
+                                updateActionVisibility();
+                            }
                             // Render list every successful submit
                             renderList();
                         } else {
@@ -175,68 +204,154 @@
         // The parameters is for filter purposes
         function renderList(filter_category = null, filter_value = null, live_input = null) {
             console.log(student.listClasses());
-            
-            const listdiv = document.getElementById("list");
 
+            const listdiv = document.getElementById("list");
             // Clear previous content before rendering new content
             listdiv.innerHTML = "";
 
-            // Create the table element
-            const table = document.createElement("table");
-            table.border = "1"; // add border for visibility
+            if (view == "table") {
+                // Create the table element
+                const table = document.createElement("table");
+                table.border = "1"; // add border for visibility
 
-            listdiv.appendChild(table);
+                listdiv.appendChild(table);
 
-            // Create table header
-            const theadrow = document.createElement("tr");
-            
-            const headers = Object.keys(student.enrolled_classes[0]);
-            headers.forEach(headerText => {
-                const theadcol = document.createElement("th");
-                theadcol.textContent = headerText;
-                theadrow.appendChild(theadcol);
-            });
+                // Create table header
+                const theadrow = document.createElement("tr");
+                
+                const headers = Object.keys(student.enrolled_classes[0]);
+                headers.forEach(headerText => {
+                    const theadcol = document.createElement("th");
+                    theadcol.textContent = headerText;
+                    theadrow.appendChild(theadcol);
+                });
 
-            table.appendChild(theadrow);
-            
-            student.enrolled_classes.forEach(cls => {
-                const trow = document.createElement("tr");
-                if (filter_category === "day") {
-                    if (cls.day == filter_value) {
+                table.appendChild(theadrow);
+                
+                student.enrolled_classes.forEach(cls => {
+                    let showRow = false;
+                    if (filter_category === "day" && cls.day == filter_value) showRow = true;
+                    else if (filter_category === "time" && cls.time == filter_value) showRow = true;
+                    else if (live_input && cls.code.includes(live_input)) showRow = true;
+                    else if (!live_input && !filter_category && !filter_value) showRow = true;
+                    if (showRow) {
+                        const trow = document.createElement("tr");
                         Object.values(cls).forEach(vals => {
                             const items = document.createElement("td");
                             items.textContent = vals;
                             items.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || convertToMinutes(cls.time.split("-")[1]) >= 1080) ? "red" : "black";
                             trow.appendChild(items);
                         });
+                        table.appendChild(trow);
                     }
-                } else if (filter_category === "time") {
-                    if (cls.time == filter_value) {
-                        Object.values(cls).forEach(vals => {
-                            const items = document.createElement("td");
-                            items.textContent = vals;
-                            items.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || convertToMinutes(cls.time.split("-")[1]) >= 1080) ? "red" : "black";
-                            trow.appendChild(items);
-                        });
-                    }
-                } else if (cls.code.includes(live_input)) {
-                    Object.values(cls).forEach(vals => {
-                        const items = document.createElement("td");
-                        items.textContent = vals;
-                        items.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || convertToMinutes(cls.time.split("-")[1]) >= 1080) ? "red" : "black";
-                        trow.appendChild(items);
-                    });
-                } else if (live_input == null && filter_category == null && filter_value == null) {
-                    Object.values(cls).forEach(vals => {
-                        const items = document.createElement("td");
-                        items.textContent = vals;
-                        items.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || convertToMinutes(cls.time.split("-")[1]) >= 1080) ? "red" : "black";
-                        trow.appendChild(items);
-                    });
+                });
+            } else {
+                student.enrolled_classes.forEach(cls => {
+                let showCard = false;
+
+                if (filter_category === "day" && cls.day == filter_value) {
+                    showCard = true;
+                } else if (filter_category === "time" && cls.time == filter_value) {
+                    showCard = true;
+                } else if (live_input !== null && cls.code.includes(live_input)) {
+                    showCard = true;
+                } else if (filter_category == null && filter_value == null && live_input == null) {
+                    showCard = true;
                 }
-                table.appendChild(trow);
+
+                if (showCard) {
+                    // Create card container
+                    const card = document.createElement("div");
+                    card.style.border = "1px solid #aaa";
+                    card.style.borderRadius = "8px";
+                    card.style.padding = "10px";
+                    card.style.margin = "10px";
+                    card.style.display = "inline-block";
+                    card.style.width = "200px";
+                    card.style.verticalAlign = "top";
+                    card.style.boxShadow = "2px 2px 5px rgba(0,0,0,0.1)";
+
+                    // Add card content
+                    const code = document.createElement("h3");
+                    code.textContent = cls.code;
+
+                    const day = document.createElement("p");
+                    day.textContent = "Day: " + cls.day;
+
+                    const time = document.createElement("p");
+                    time.textContent = "Time: " + cls.time;
+                    time.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || 
+                                        convertToMinutes(cls.time.split("-")[1]) >= 1080) 
+                                        ? "red" : "black";
+
+                    // Append items to card
+                    card.appendChild(code);
+                    card.appendChild(day);
+                    card.appendChild(time);
+
+                    // Append card to list
+                    listdiv.appendChild(card);
+                }
             });
+            }
         }
+
+        // The parameters is for filter purposes
+        // function renderList(filter_category = null, filter_value = null, live_input = null) {
+        //     const listdiv = document.getElementById("list");
+
+        //     // Clear previous content before rendering new content
+        //     listdiv.innerHTML = "";
+
+        //     student.enrolled_classes.forEach(cls => {
+        //         let showCard = false;
+
+        //         if (filter_category === "day" && cls.day == filter_value) {
+        //             showCard = true;
+        //         } else if (filter_category === "time" && cls.time == filter_value) {
+        //             showCard = true;
+        //         } else if (live_input !== null && cls.code.includes(live_input)) {
+        //             showCard = true;
+        //         } else if (filter_category == null && filter_value == null && live_input == null) {
+        //             showCard = true;
+        //         }
+
+        //         if (showCard) {
+        //             // Create card container
+        //             const card = document.createElement("div");
+        //             card.style.border = "1px solid #aaa";
+        //             card.style.borderRadius = "8px";
+        //             card.style.padding = "10px";
+        //             card.style.margin = "10px";
+        //             card.style.display = "inline-block";
+        //             card.style.width = "200px";
+        //             card.style.verticalAlign = "top";
+        //             card.style.boxShadow = "2px 2px 5px rgba(0,0,0,0.1)";
+
+        //             // Add card content
+        //             const code = document.createElement("h3");
+        //             code.textContent = cls.code;
+
+        //             const day = document.createElement("p");
+        //             day.textContent = "Day: " + cls.day;
+
+        //             const time = document.createElement("p");
+        //             time.textContent = "Time: " + cls.time;
+        //             time.style.color = (convertToMinutes(cls.time.split("-")[0]) >= 1080 || 
+        //                                 convertToMinutes(cls.time.split("-")[1]) >= 1080) 
+        //                                 ? "red" : "black";
+
+        //             // Append items to card
+        //             card.appendChild(code);
+        //             card.appendChild(day);
+        //             card.appendChild(time);
+
+        //             // Append card to list
+        //             listdiv.appendChild(card);
+        //         }
+        //     });
+        // }
+
 
         renderList(); // for debugging
 
@@ -359,17 +474,18 @@
                 if (confirm("Are you sure you want to delete " + to_delete + "?")) {
                     // Remove the current element from array
                     student.enrolled_classes.splice(i, 1);
+                    updateActionVisibility();
                     renderList();
                 }
             }
         }
 
         function filterClass() {
-            let category = prompt("Choose the category the filter will base from(day, time or all)").toLowerCase();
+            let category = prompt("Choose the category the filter will base from(day, time or no filter)").toLowerCase();
 
-            if (!(category == "day" || category == "time" || category == "all")) {
+            if (!(category == "day" || category == "time" || category == "no filter")) {
                 prompt("Invalid category");
-            } else if (category == "all") {
+            } else if (category == "no filter") {
                 renderList();
             } else {
                 let filter_value = prompt("Enter filter value");
@@ -399,7 +515,7 @@
             document.getElementById("toggle_sort").hidden = false;
 
             if (withPrompt) {
-                sort_category = prompt("In what category do you want to sort");
+                sort_category = prompt("In what category do you want to sort (day or time)");
             }
 
             if (sort_category == "day") {
