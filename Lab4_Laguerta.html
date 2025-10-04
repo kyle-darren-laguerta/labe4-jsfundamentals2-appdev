@@ -14,7 +14,7 @@
         - student object { name, id, enrolledClasses: [] } /
         - class object { code, day, time } /
         - Methods: 
-            - addClass(classObj) rejects if class conflicts in time. 
+            - addClass(classObj) rejects if class conflicts in time. /
             - listClasses() returns all enrolled classes in readable format. /
     - UI Elements
         - Heading (<h2>) showing your chosen IS /
@@ -69,7 +69,7 @@
         const student = {
             name: "loki",
             id: "202",
-            enrolled_classes: [new ClassObj("math 101", "monday", "7:30am-7:45am"), new ClassObj("math 102", "tuesday", "8:30am-9:30am"), new ClassObj("math 103", "monday", "6:30am-7:00am")],
+            enrolled_classes: [new ClassObj("math 101", "monday", "7:30am-7:45am"), new ClassObj("math 102", "tuesday", "8:30am-9:30am"), new ClassObj("math 103", "monday", "8:30am-9:30am")],
             addClass: function(classObj) {
                 this.enrolled_classes.push(classObj);
             },
@@ -90,51 +90,181 @@
             this.time = time;
         }
 
-        // function validateDay(day) {
+        function validateDay(day) {
+            const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
-        // }
+            return days.includes(day) ? true : false;
+        }
+
+        function validateTime(time) {
+            let time_split = time.split("-");
+            let time_valid = true;
+
+            if (time_split.length !== 2) return false;
+            
+            for (let i=0; i < 2; i++) {
+                let letters = time_split[i].slice(-2);
+                let hour = parseInt(time_split[i].slice(0, -5));
+                let minutes = parseInt(time_split[i].slice(0, -2).split(":")[1]);
+                time_valid &&= ((letters == "am" || letters == "pm") && (hour <= 12 && hour > 0) && (minutes < 60 && minutes >= 0));
+            }
+        
+            // Check if time valid is true and the start time is less than the end
+            return time_valid && (convertToMinutes(time_split[0]) < convertToMinutes(time_split[1]));
+        }
+
+        function validateSchedule(day, time) {
+            for (let i=0; i < student.enrolled_classes.length; i++) {
+                // Check if the same day first
+                if (student.enrolled_classes[i].day === day) {
+                    // Get the time intervals and convert it to minutes integer
+                    let existing_time_start = convertToMinutes(student.enrolled_classes[i].time.split("-")[0]);
+                    let existing_time_end = convertToMinutes(student.enrolled_classes[i].time.split("-")[1]);
+                    let new_time_start = convertToMinutes(time.split("-")[0]);
+                    let new_time_end = convertToMinutes(time.split("-")[1]);
+
+                    // new_time_start must be less than existing_time_start or must be greater than or equal to existing_time_end
+                    // new_time_end must be less than or equal to existing_time_start or must be greater than existing_time_end
+                    return (new_time_start < existing_time_start || new_time_start >= existing_time_end) && (new_time_end <= existing_time_start || new_time_end > existing_time_end);
+                }
+            }
+
+            // Return true if day still not exist
+            return true;
+        }
 
         function handleSubmit(event) {
             event.preventDefault();
 
             let code = document.getElementById("code").value.toLowerCase();
             let day = document.getElementById("day").value.toLowerCase();
-            let time = document.getElementById("time").value.toLowerCase();
+            if (validateDay(day)) {
+                let time = document.getElementById("time").value.toLowerCase();
+                if (validateTime(time)) {
+                    if (validateSchedule(day, time)) {
+                        student.addClass(new ClassObj(code, day, time));
 
-            student.addClass(new ClassObj(code, day, time));
-            // Render list every submit
-            renderList();
+                        // Render list every successful submit
+                        renderList();
+                    } else {
+                        alert("There is a conflict in the schedule");
+                    }
+                } else {
+                    alert("Invalid time");
+                }
+            } else {
+                alert("Invalid day");
+            }
         }
 
-        function renderList(filter_category = null, filter_value = null) {
+        // function renderList(filter_category = null, filter_value = null) {
+        //     const listdiv = document.getElementById("list");
+
+        //     // Clear previous content before rendering new content
+        //     listdiv.innerHTML = "";
+
+        //     // Get the class list string
+        //     let class_str = student.listClasses();
+        //     // Split by "\n" to separate each class information
+        //     let class_str_arr = class_str.split("\n");
+
+        //     for (let i=0; i < class_str_arr.length; i++) {
+        //         if (!class_str_arr[i]) continue; // skip empty string
+        //         let p = document.createElement("p");
+        //         if (filter_category === "day") {
+        //             if (student.enrolled_classes[i].day == filter_value) {
+        //                 p.textContent = class_str_arr[i];
+        //                 listdiv.appendChild(p);
+        //             }
+        //         } else if (filter_category === "time") {
+        //             if (student.enrolled_classes[i].time == filter_value) {
+        //                 p.textContent = class_str_arr[i];
+        //                 listdiv.appendChild(p);
+        //             }
+        //         } else {
+        //             p.textContent = class_str_arr[i];
+        //             listdiv.appendChild(p);
+        //         }
+        //     }
+        // }
+
+        // The parameters is for filter purposes
+        function renderList(filter_category = null, filter_value = null, live_input = null) {
             const listdiv = document.getElementById("list");
 
             // Clear previous content before rendering new content
             listdiv.innerHTML = "";
 
-            // Get the class list string
-            let class_str = student.listClasses();
-            // Split by "\n" to separate each class information
-            let class_str_arr = class_str.split("\n");
+                    // Create the table element
+            const table = document.createElement("table");
+            table.border = "1"; // add border for visibility
 
-            for (let i=0; i < class_str_arr.length; i++) {
-                if (!class_str_arr[i]) continue; // skip empty string
-                let p = document.createElement("p");
+            listdiv.appendChild(table);
+
+            // Create table header
+            const theadrow = document.createElement("tr");
+            
+            const headers = Object.keys(student.enrolled_classes[0]);
+            headers.forEach(headerText => {
+                const theadcol = document.createElement("th");
+                theadcol.textContent = headerText;
+                theadrow.appendChild(theadcol);
+            });
+
+            table.appendChild(theadrow);
+            
+            student.enrolled_classes.forEach(cls => {
+                const trow = document.createElement("tr");
                 if (filter_category === "day") {
-                    if (student.enrolled_classes[i].day == filter_value) {
-                        p.textContent = class_str_arr[i];
-                        listdiv.appendChild(p);
+                    if (cls.day == filter_value) {
+                        Object.values(cls).forEach(vals => {
+                            const items = document.createElement("td");
+                            items.textContent = vals;
+                            trow.appendChild(items);
+                        });
                     }
                 } else if (filter_category === "time") {
-                    if (student.enrolled_classes[i].time == filter_value) {
-                        p.textContent = class_str_arr[i];
-                        listdiv.appendChild(p);
+                    if (cls.time == filter_value) {
+                        Object.values(cls).forEach(vals => {
+                            const items = document.createElement("td");
+                            items.textContent = vals;
+                            trow.appendChild(items);
+                        });
                     }
-                } else {
-                    p.textContent = class_str_arr[i];
-                    listdiv.appendChild(p);
+                } else if (cls.code.includes(live_input)) {
+                    Object.values(cls).forEach(vals => {
+                        const items = document.createElement("td");
+                        items.textContent = vals;
+                        trow.appendChild(items);
+                    });
+                } else if (live_input == null && filter_category == null && filter_value == null) {
+                    Object.values(cls).forEach(vals => {
+                        const items = document.createElement("td");
+                        items.textContent = vals;
+                        trow.appendChild(items);
+                    });
                 }
-            }
+                table.appendChild(trow);
+            });
+
+            // for (let i=0; i < class_str_arr.length; i++) {
+            //     if (!class_str_arr[i]) continue; // skip empty string
+            //     let p = document.createElement("p");
+            //     if (filter_category === "day") {
+            //         if (student.enrolled_classes[i].day == filter_value) {
+            //             p.textContent = class_str_arr[i];
+            //             listdiv.appendChild(p);
+            //         }
+            //     } else if (filter_category === "time") {
+            //         if (student.enrolled_classes[i].time == filter_value) {
+            //             p.textContent = class_str_arr[i];
+            //             listdiv.appendChild(p);
+            //         }
+            //     } else {
+            //         p.textContent = class_str_arr[i];
+            //         listdiv.appendChild(p);
+            //     }
+            // }
         }
 
         renderList(); // for debugging
@@ -149,27 +279,29 @@
             // Clear before re-rendering
             listdiv.innerHTML = "";
 
-            // I didn't call renderList() because renderList() has its own filter feature
-            // Filter enrolled_classes by partial code match
-            for (let i = 0; i < student.enrolled_classes.length; i++) {
-                if (student.enrolled_classes[i].code.toLowerCase().includes(query)) {
-                    let p = document.createElement("p");
-                    p.textContent = `Class code: ${student.enrolled_classes[i].code}; Day: ${student.enrolled_classes[i].day}; Time: ${student.enrolled_classes[i].time}`;
-                    listdiv.appendChild(p);
+            renderList(null, null, query);
 
-                    // Show update button if the current input is equal to an existing class code
-                    if (student.enrolled_classes[i].code.toLowerCase() === query) {
-                        document.getElementById("update_btn").hidden = false;
-                        class_to_be_updated = student.enrolled_classes[i];
-                    } else {
-                        document.getElementById("update_btn").hidden = true;
-                    }
-                }
-            }
+            // // I didn't call renderList() because renderList() has its own filter feature
+            // // Filter enrolled_classes by partial code match
+            // for (let i = 0; i < student.enrolled_classes.length; i++) {
+            //     if (student.enrolled_classes[i].code.includes(query)) {
+            //         let p = document.createElement("p");
+            //         p.textContent = `Class code: ${student.enrolled_classes[i].code}; Day: ${student.enrolled_classes[i].day}; Time: ${student.enrolled_classes[i].time}`;
+            //         listdiv.appendChild(p);
+
+            //         // Show update button if the current input is equal to an existing class code
+            //         if (student.enrolled_classes[i].code.toLowerCase() === query) {
+            //             document.getElementById("update_btn").hidden = false;
+            //             class_to_be_updated = student.enrolled_classes[i];
+            //         } else {
+            //             document.getElementById("update_btn").hidden = true;
+            //         }
+            //     }
+            // }
         }
 
         function updateRecord() {
-            let update_category = prompt("What do you want to update (code, day, time)");
+            let update_category = prompt("What do you want to update (code, day, time, day and time)");
             let new_value;
 
             // For emptying input after successful modification
@@ -182,14 +314,56 @@
                 search_input.value = "";
             } else if (update_category == "day") {
                 new_value = prompt("Enter new day");
-                class_to_be_updated.day = new_value;
-                renderList();
-                search_input.value = "";
+                // Check if the day is valid
+                if (validateDay(new_value)) {
+                    // Check of there is no conflicting schedule wihin the new day
+                    if (validateSchedule(new_value, class_to_be_updated.time)) {
+                        class_to_be_updated.day = new_value;
+                        renderList();
+                        search_input.value = "";
+                    } else {
+                        alert("There is a confict in the schedule");
+                    }
+                } else {
+                    alert("Invalid day");
+                }
             } else if (update_category == "time") {
                 new_value = prompt("Enter new time");
-                class_to_be_updated.time = new_value;
-                renderList();
-                search_input.value = "";
+                // Check if the time is valid
+                if (validateTime(new_value)) {
+                    // Check if the time doesn't conflict with exisiting time schedule
+                    if (validateSchedule(class_to_be_updated.day, new_value)) {
+                        class_to_be_updated.time = new_value;
+                        renderList();
+                        search_input.value = "";
+                    } else {
+                        alert("There is a confict in the schedule");
+                    }
+                } else {
+                    alert("Invalid time");
+                }
+            } else if (update_category == "day and time") {
+                let new_value_day = prompt("Enter new day");
+                // Check if the day is valid
+                if (validateDay(new_value_day)) {
+                    let new_value_time = prompt("Enter new time");
+                    // Check if the time is valid
+                    if (validateTime(new_value_time)) {
+                        // Check if the time doesn't conflict with exisiting time schedule
+                        if (validateSchedule(new_value_day, new_value_time)) {
+                            class_to_be_updated.day = new_value_day;
+                            class_to_be_updated.time = new_value_time;
+                            renderList();
+                            search_input.value = "";
+                        } else {
+                            alert("There is a confict in the schedule");
+                        }
+                    } else {
+                        alert("Invalid time");
+                    }
+                } else {
+                    alert("Invalid day");
+                }
             } else {
                 alert("Invalid category");
             }
