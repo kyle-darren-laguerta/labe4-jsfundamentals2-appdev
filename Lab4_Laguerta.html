@@ -9,7 +9,7 @@
         - Filter records by a meaningful rule (classes on Friday). /
         - Sort records by one numeric and one string field /
         - Write a custom search function that accepts partial keywords (typing "Ma" matches "Math 101"). /
-        - Show results both in the console and in the DOM (HTML list or table).
+        - Show results both in the console and in the DOM (HTML list or table) /
     - Objects to define
         - student object { name, id, enrolledClasses: [] } /
         - class object { code, day, time } /
@@ -30,8 +30,13 @@
         - Implement live search with partial keywords. /
         - Highlight special cases in red (class after 6 PM). /
         - Provide a toggle view (table view vs. card view). /
--->
 
+    Output by: Kyle Darren D. Laguerta
+    Block: CS-2B
+
+    NOTE: This code has already intialized the student object with 5 records but you can just clear the enrolled_classes array
+    to start from 0 records or click the reset button in the UI output.
+-->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -45,16 +50,19 @@
     <h2>Schedule IS</h2>
     
     <form onsubmit="handleSubmit(event)">
+        <label for="code">Class Code:</label>
         <input type="text" name="code" id="code" required>
+        <label for="day">Day:</label>
         <input type="text" name="day" id="day" required>
+        <label for="time">Time:</label>
         <input type="text" name="time" id="time" required>
-        <button type="submit">Add</button>
+        <button type="submit">Add Record</button>
     </form>
 
     <button id="filter_btn" onclick="filterClass()" hidden>Filter</button>
     <button id="delete_btn" onclick="deleteClass()" hidden>Delete</button>
     <button id="sort_btn" onclick="sortClass(true, true)" hidden>Sort</button>
-    <button id="toggle_sort" onclick="toggleSort()" hidden>Toggle: Ascending</button>
+    <button id="toggle_sort_btn" onclick="toggleSort()" hidden>Toggle: Ascending</button>
     <button id="reset_btn" onclick="resetRecord()" hidden>Reset</button>
 
     <input type="text" id="search" placeholder="Search by class code" onkeyup="liveSearch()" hidden>
@@ -74,7 +82,8 @@
         const student = {
             name: "Kyle Darren D. Laguerta",
             id: "2024-01-01840",
-            enrolled_classes: [new ClassObj("math 101", "monday", "7:30am-7:45am"), new ClassObj("math 102", "tuesday", "8:30am-9:30am"), new ClassObj("math 103", "monday", "8:30am-9:30am"), new ClassObj("math 104", "wednesday", "8:30am-9:30am"), new ClassObj("math 105", "friday", "8:30am-9:30am")],
+            // enrolled_classes: [],
+            enrolled_classes: [new ClassObj("math 101", "monday", "7:30am-8:30am"), new ClassObj("cs 102", "tuesday", "7:30am-8:30am"), new ClassObj("cs 105", "monday", "10:00am-11:00am"), new ClassObj("math elec 102", "wednesday", "8:30pm-9:30pm"), new ClassObj("gec 12", "tuesday", "5:30pm-6:30pm")],
             addClass: function(classObj) {
                 this.enrolled_classes.push(classObj);
             },
@@ -96,6 +105,8 @@
             this.day = day;
             this.time = time;
         }
+
+        updateActionVisibility();
 
         //----------------------------------------Validation Functions----------------------------------------//
 
@@ -244,6 +255,11 @@
                 // Set the enrolled_classes to empty array
                 student.enrolled_classes = [];
                 renderList();
+
+                // Hide buttons that appear from other button action
+                document.getElementById('update_btn').hidden = true;
+                document.getElementById('toggle_sort_btn').hidden = true;
+
                 // Call updateActionVisibility to hide buttons
                 updateActionVisibility();
             }
@@ -251,7 +267,7 @@
 
         function sortClass(isAscending, withPrompt) {
             // Unhide the toggle button for ascending/descending
-            document.getElementById("toggle_sort").hidden = false;
+            document.getElementById("toggle_sort_btn").hidden = false;
 
             // This function is used by toggleSort that doesn't need a prompt
             if (withPrompt) {
@@ -293,7 +309,7 @@
             isAscending = (isAscending) ? false : true;
             sortClass(isAscending, false);
 
-            document.getElementById("toggle_sort").innerText = isAscending ? "Toggle: Ascending" : "Toggle: Descending";
+            document.getElementById("toggle_sort_btn").innerText = isAscending ? "Toggle: Ascending" : "Toggle: Descending";
         }
 
         function toggleView() {
